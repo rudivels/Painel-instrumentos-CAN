@@ -1,5 +1,8 @@
 # Engenharia reversa do painel UP VW Can bus
 
+
+# 1. Introdução
+
 Fazendo a engenharia reversa do painel de instrumentos do UP VW.
 
 ![](fotos/painel_up_frente.jpg)
@@ -72,12 +75,15 @@ e o detalhe da palavra mandado pelo CAN é o seguinte ..  a partir dessa figura 
 ![](fotos/sinal_bloco_3.jpg)
 
 
-
-
-# Dump do CAN
+# 2. Dump do CAN pela porta serial
 
 Usando a biblioteca do CAN Read Demo do Sparkfun CAN bus shield conseguimos monitorar o barramento. 
-Um programa simples que monitora e imprime.
+Um programa simples que monitora e imprime os dados pode ser obtido no link [https://github.com/sparkfun/SparkFun\_CAN-Bus_Arduino_Library](https://github.com/sparkfun/SparkFun_CAN-Bus_Arduino_Library). 
+
+A foto mostra a montagem do microcontrolador, módulo e painel.
+![](fotos/painel_can_nano.jpg)
+
+O programa exemplo `CAN_Read_Demo` foi usado para mostrar os dados no barramento usando um Arduino Nano e um módulo [CAN BUS MCP2515](https://www.filipeflop.com/produto/modulo-can-bus-mcp2515-tja1050/) 
 
 ```
 #include <Canbus.h>
@@ -89,6 +95,7 @@ Um programa simples que monitora e imprime.
 
 void setup()
 {
+ Serial.begin(9600); 
  Serial.println("CAN Read - Testing receival of CAN Bus message");  
  delay(500);  
  if(Canbus.init(CANSPEED_500))  //Initialise MCP2515 CAN controller at the specified speed
@@ -360,5 +367,254 @@ Este programa gera o seguinte dump na porta serial no momento que o painel é li
 02:41:41.857 -> ID: 322, Data: 0
 02:41:41.924 -> ID: 322, Data: 0```
 
+# 3. CAN-UTILS do linux-can
 
-Agora descobir a parir do dicionário de dados quais os comandos que podemos usar neste painel.
+Uma outra maneira de visualizar e analisar os dados é mapeando a porta serial como uma dispositivo de rede num computador rodando linux e usar as ferramantas do [CAN-UTILS](https://github.com/linux-can/can-utils).
+
+Isso consiste em instalar um programa simples de leitura e escrita no barramento CAN no Arduino e depois mapear a porta serial como dispositivo de rede usando as ferramentas normais de rede `ifconfig` do linux para configurar-lo.
+
+O programa que roda no arduino que transforma o arduino com CAN-shield num adaptador CAN-USB para Can-utils pode ser obito no link [kahiroka/slcanuino](https://github.com/kahiroka/slcanuino).
+
+A instalação do can-utils é direta e pode ser feito da seguinte mandeira:
+
+```
+sudo apt install can-utils
+``` 
+
+Para habiliar a rede Can no linux são os seguintes comandos, levando em consideração a porta serial onde está pendurada o microcontrolador.
+
+
+```
+$ sudo slcan_attach -f -s6 -o /dev/ttyUSB0  
+$ sudo slcand -S 1000000 ttyUSB0 can0  
+$ sudo ifconfig can0 up  
+```
+
+O Can-utils tem diversos programa para você mostrar, filtrar, e gerar pacotes can. 
+O principal programa para fazer isso é o candump que pode ser usado da seguinte forma:
+
+```
+$ candump can0
+```
+
+Para disabilitar a porta can pode usar os seguintes comandos
+
+```
+$ sudo ifconfig can0 down  
+$ sudo killall slcand
+```
+
+Segue a listagem do 
+
+```
+$ candump -tAd can0
+ (2020-12-16 18:11:48.934470)  can0  0A0   [0] 
+ (2020-12-16 18:11:48.946454)  can0  020   [0] 
+ (2020-12-16 18:11:49.158497)  can0  020   [0] 
+ (2020-12-16 18:11:49.166508)  can0  020   [0] 
+ (2020-12-16 18:11:49.166549)  can0  020   [0] 
+ (2020-12-16 18:11:49.166560)  can0  020   [0] 
+ (2020-12-16 18:11:49.166571)  can0  020   [0] 
+ (2020-12-16 18:11:49.166581)  can0  020   [0] 
+ (2020-12-16 18:11:49.383498)  can0  020   [0] 
+ (2020-12-16 18:11:49.390506)  can0  020   [0] 
+ (2020-12-16 18:11:49.390548)  can0  020   [0] 
+ (2020-12-16 18:11:49.390560)  can0  020   [0] 
+ (2020-12-16 18:11:49.390569)  can0  020   [0] 
+ (2020-12-16 18:11:49.390579)  can0  0A0   [0] 
+ (2020-12-16 18:11:49.608520)  can0  020   [0] 
+ (2020-12-16 18:11:49.616515)  can0  020   [0] 
+ (2020-12-16 18:11:49.616549)  can0  0A0   [0] 
+ (2020-12-16 18:11:49.616559)  can0  020   [0] 
+ (2020-12-16 18:11:49.616571)  can0  020   [0] 
+ (2020-12-16 18:11:49.616582)  can0  020   [0] 
+ (2020-12-16 18:11:49.833546)  can0  020   [0] 
+ (2020-12-16 18:11:49.840539)  can0  020   [0] 
+ (2020-12-16 18:11:49.840577)  can0  020   [0] 
+ (2020-12-16 18:11:49.840589)  can0  020   [0] 
+ (2020-12-16 18:11:49.840597)  can0  020   [0] 
+ (2020-12-16 18:11:49.840606)  can0  020   [0] 
+ (2020-12-16 18:11:50.058577)  can0  020   [0] 
+ (2020-12-16 18:11:50.066616)  can0  020   [0] 
+ (2020-12-16 18:11:50.066668)  can0  020   [0] 
+ (2020-12-16 18:11:50.066679)  can0  020   [0] 
+ (2020-12-16 18:11:50.066686)  can0  020   [0] 
+ (2020-12-16 18:11:50.066694)  can0  020   [0] 
+ (2020-12-16 18:11:50.283602)  can0  020   [0] 
+ (2020-12-16 18:11:50.295588)  can0  0A0   [0] 
+ (2020-12-16 18:11:50.295628)  can0  020   [0] 
+ (2020-12-16 18:11:50.295640)  can0  020   [0] 
+ (2020-12-16 18:11:50.295651)  can0  020   [0] 
+ (2020-12-16 18:11:50.295661)  can0  020   [0] 
+ (2020-12-16 18:11:50.297599)  can0  020   [0] 
+ (2020-12-16 18:11:50.508594)  can0  020   [0] 
+ (2020-12-16 18:11:50.516627)  can0  020   [0] 
+ (2020-12-16 18:11:50.516667)  can0  020   [0] 
+ (2020-12-16 18:11:50.516679)  can0  020   [0] 
+ (2020-12-16 18:11:50.516688)  can0  020   [0] 
+ (2020-12-16 18:11:50.516697)  can0  020   [0] 
+ (2020-12-16 18:11:50.733624)  can0  020   [0] 
+ (2020-12-16 18:11:50.741601)  can0  020   [0] 
+ (2020-12-16 18:11:50.741639)  can0  020   [0] 
+ (2020-12-16 18:11:50.741651)  can0  020   [0] 
+ (2020-12-16 18:11:50.741662)  can0  020   [0] 
+ (2020-12-16 18:11:50.741671)  can0  020   [0] 
+ (2020-12-16 18:11:50.958646)  can0  020   [0] 
+ (2020-12-16 18:11:50.965638)  can0  020   [0] 
+ (2020-12-16 18:11:50.965671)  can0  020   [0] 
+ (2020-12-16 18:11:50.965683)  can0  020   [0] 
+ (2020-12-16 18:11:50.965692)  can0  020   [0] 
+ (2020-12-16 18:11:50.965701)  can0  020   [0] 
+ (2020-12-16 18:11:51.183653)  can0  020   [0] 
+ (2020-12-16 18:11:51.191672)  can0  020   [0] 
+ (2020-12-16 18:11:51.191711)  can0  020   [0] 
+ (2020-12-16 18:11:51.191724)  can0  020   [0] 
+ (2020-12-16 18:11:51.191733)  can0  020   [0] 
+ (2020-12-16 18:11:51.191741)  can0  020   [0] 
+ (2020-12-16 18:11:51.408693)  can0  020   [0] 
+ (2020-12-16 18:11:51.414686)  can0  020   [0] 
+ (2020-12-16 18:11:51.414725)  can0  020   [0] 
+ (2020-12-16 18:11:51.414737)  can0  020   [0] 
+ (2020-12-16 18:11:51.414746)  can0  020   [0] 
+ (2020-12-16 18:11:51.416682)  can0  1050401F   [0] 
+ (2020-12-16 18:11:51.422675)  can0  10401FA0   [0] 
+ (2020-12-16 18:11:51.633693)  can0  1007E820   [0] 
+ (2020-12-16 18:11:51.639707)  can0  01FA0820   [0] 
+ (2020-12-16 18:11:51.639746)  can0  1050401F   [0] 
+ (2020-12-16 18:11:51.644691)  can0  10401FA0   [0] 
+ (2020-12-16 18:11:51.644723)  can0  1007E820   [0] 
+ (2020-12-16 18:11:51.647708)  can0  01FA0820   [0] 
+ (2020-12-16 18:11:51.647750)  can0  1E820820   [0] 
+ (2020-12-16 18:11:51.858721)  can0  00820820   [0] 
+ (2020-12-16 18:11:51.862701)  can0  00820820   [0] 
+ (2020-12-16 18:11:51.862736)  can0  00820820   [0] 
+ (2020-12-16 18:11:51.866745)  can0  00820820   [0] 
+ (2020-12-16 18:11:51.866794)  can0  00820820   [0] 
+ (2020-12-16 18:11:51.866808)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.084726)  can0  151A0275   [0] 
+ (2020-12-16 18:11:52.088734)  can0  06809D60   [0] 
+ (2020-12-16 18:11:52.088768)  can0  00275820   [0] 
+ (2020-12-16 18:11:52.091743)  can0  09D60820   [0] 
+ (2020-12-16 18:11:52.091783)  can0  15820820   [0] 
+ (2020-12-16 18:11:52.091796)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.308773)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.312770)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.312807)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.316744)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.316782)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.316795)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.533795)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.539762)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.539799)  can0  020820A0   [0] 
+ (2020-12-16 18:11:52.544785)  can0  0820A0A0   [0] 
+ (2020-12-16 18:11:52.544827)  can0  08282820   [0] 
+ (2020-12-16 18:11:52.547756)  can0  0A0A0820   [0] 
+ (2020-12-16 18:11:52.547790)  can0  02820820   [0] 
+ (2020-12-16 18:11:52.758789)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.762774)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.762808)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.766800)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.766843)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.766856)  can0  00820820   [0] 
+ (2020-12-16 18:11:52.983808)  can0  020820A0   [0] 
+ (2020-12-16 18:11:52.987810)  can0  02082820   [0] 
+ (2020-12-16 18:11:52.987856)  can0  020A0820   [0] 
+ (2020-12-16 18:11:52.991822)  can0  0A0820A0   [0] 
+ (2020-12-16 18:11:52.991864)  can0  02082820   [0]
+ 
+```
+ 
+Agora pode-se partir para analisar o protocolo.
+
+Além do uso arduino com o módulo controlador CAN pode se usar um microcomputador mais potente para fazer a captura dos dados. 
+Vamos apresentar a opção com o Raspberry e Beagle Bone.
+
+## 3.1. Raspberry
+
+
+## 3.2. Beagle board
+O computador *Beagle Bone* tem uma arquitetura apropriado para sistemas embarcadas baseado em num ARM, ter além do processador principal, dois *Programmable Real-time Unit (PRU)* que podem ser usados para alguma necessidade de processamento dedicado e dois controladores CAN já incorporados na sua placa.
+
+Dessa forma pode se só usar um transciever SN65HVD230 para compatibilizar os níveis de tensão no barramento can com as portas do microcomputador. 
+
+
+Os pinos no barramento de acesso do PocketBeagle podem ser configurados para dar acesso a várias funcionalidades do computador. 
+
+A dificuldade consiste no fato de o Beagle ter um sistemática de mapeamento de hardware no sistema operacional Linux específica, diferente dos computadores convencionais. O Beagle é um computador numa única placa que usa o processador com arquitetura ARM. Por conta dos inúmeros sistemas baseados no arquitetura ARM que surgiram para sistemas embarcadas, houve uma modificação no Kernel do Linux para dar conta a especificidades destes sistemas.
+
+No sistema operacional Linux  convencional as especificidades do hardware são de certa forma incorporadas no Kernel, mas este sistemática se mostrou impraticável com as placas ARM. Por isso foi introduzido a estrutura de Device Tree para que o computador Beagle saiba qual hardware e periféricos estão fisicamente instalados na placa. Veja o artigo de Mateus Gagliardi: Introdução ao uso de Device Tree e Device Tree Overlay em Sistemas Linux Embarcado. 2015. <https://www.embarcados.com.br/device-tree-linux-embarcado/>
+
+No caso do Beagle essa estrutura de Device Tree tem que dar conta para definir quais pinos serão usados do hardware, pois Beagle tem portas genéricas para entrada e saída de dados (GPIO), uma porta analógica (ADC), PWM, UART, SPI e I2C pinos, e estes pinos podem ser configurados para diversos usos. No nosso caso específico, as duas controladoras CAN usam alguns dos pinos da SPI e do I2C como entrada e saída dos sinais CAN. 
+
+Este roteiro é uma adaptação da configuração do BBB no artigo no [https://www.beyondlogic.org/adding-can-to-the-beaglebone-black/](https://www.beyondlogic.org/adding-can-to-the-beaglebone-black/) para o PocketBeagle.
+
+Nos releases dos kernels mais novos a configuração do pinos é melhor documentos. Para ver a versão do kernal pode executar o comando: 
+
+`$ uname --a`
+
+```
+Linux beaglebone 4.19.94-ti-r42 #1buster SMP PREEMPT Tue Mar 31 19:38:29 UTC 2020 armv7l GNU/Linux
+```
+
+Para verificar se de fato a Can bus está mapeado no kernel pode-se executar o comando 
+`$ dmesg | grep can`
+
+A resposta tem que ser algo do tipo: 
+
+```
+[    1.047544] c_can_platform 481cc000.can: c_can_platform device registered (regs=5e6dc592, irq=39)
+[    1.049113] c_can_platform 481d0000.can: c_can_platform device registered (regs=e2b987c8, irq=40)
+[    1.186345] can: controller area network core (rev 20170425 abi 9)
+```
+
+
+O próximo passo é configur qual porta can será usado e quais pinos serão ligado fisicamente no conector de saída. A figura a seguir mostra os conector P2 com as diversas opções dos pinos.
+
+![](figuras/conector_pocket.jpg)
+
+A interface CAN0 pode ser ligado nos pino 26 e 28 do conector P1. Nota-se que a interface CAN1 pode ser ligado nos pinos 9,10 ou 25,27. 
+
+| Beagle  | pino | transciever |  pino |
+|:-------:|:----:|:-----------:|:-----:|
+| gnd     | 21   | GND         | 2     |
+| 3.3v    | 23   | 3V3         | 1     | 
+| can1 rx | 25   | CRX         | 4     |
+| can1 tx | 27   | CTX         | 3     |
+
+
+![](fotos/pocketbeagle_can.jpg)
+
+Há um programa de configuração de pinos que permite escolher a funcionalidade do pino e ver seu atual uso.
+Por exemplo o seguinte comando lista todas as opções disponíveis para o pino P2.5:
+ 
+`config-pin -l P2.25`
+
+```
+Available modes for P2_25 are: default gpio gpio_pu gpio_pd gpio_input spi spi_cs uart can i2c
+``` 
+
+Para configurar o pino para acessar a interface can:
+
+`config-pin P2.27 can`
+
+Para finalizar o processe de configuração do hardware temos que iniciar a interface CAN com o seguinte comando: 
+
+` sudo /sbin/ip link set can1 up type can bitrate 500000`
+
+Com isso pode se verificar o status da interface can com os comandos normais de rede do linux que deve mostrar a nova interface can e todos os outros interfaces de comunicação do sistema.
+
+`ifconfig`
+
+Para automatizar o processo de ativação do Can bus no boot ainda falta descobrir como configurar os pinos como interface can durante o boot.  
+Pode ser depois usar a mesma sequencia de ativação do can durante o boot.
+
+O resto do procedimento é o mesmo que foi apresentado no CAN-UTILS.
+
+
+`candump can`
+
+Há uma vasta documentação técnica sobre o uso do SocketCan em sistemas operacionais Linux acessando a porta CAN a partir de programas desenvolvido em C/C++ ou Python.
+
+
+
+
