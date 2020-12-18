@@ -1,9 +1,9 @@
-# Engenharia reversa do painel UP VW Can bus
+# Engenharia reversa do painel UP VW para usar o Can bus
 
 
 # 1. Introdução
 
-Fazendo a engenharia reversa do painel de instrumentos do UP VW.
+Este texto elaborei para apresentar o passo a passo da engenharia reversa do painel de instrumentos do UP da VW.
 
 ![](fotos/painel_up_frente.jpg)
 
@@ -11,68 +11,68 @@ Fazendo a engenharia reversa do painel de instrumentos do UP VW.
 
 ![](fotos/detalhes_painel_up.jpg)
 
+O primeiro passo foi buscar identificar os pinos de alimentação e terra do painel. 
+A partir de um video sobre manutenção de paneis de instrumentos no youtube conseguimos descobrir que  pino 20 é GND e que os pinos 32 e 31 são de alimentação. Suspeito que o pino 32 deve ser alimentação geral e 31 deve ser alimentação do painel depois da chave de partida.
 
-Já sabemos que pino 20 é GND e pino 32 e 31 alimentação..  32 deve ser alimentação geral e 31 deve ser alimentação do painel depois da chave de partida...
 
+Bom...  com isso resolvido, podemos ver se a gente acha um conector que se encaixa nessas configuração..   Deve ter alguma documentação sobre reparação de paineis ou instalação do imobilização do motor (immo) e sua chave de segurança que trata sobre este conector.  Também deve ter alguma padronização de conectores e pinagem pelo fabricante baseado nas cores (conector azul, verde, etc.)
 
-Bom...  com isso resolvido, podemos ver se a gente acha um conector que se encaixa nessas configuração..   Deve ter alguma documentação sobre reparação de paineis, imobilização do motor (immo) chave de segurança que trata sobre este conector...  Também deve ter alguma padronização de cores (conector azul, verde)...
-
-Eu não tinha certeza se este painel tinha uma interface CAN...  mas pesquisando o datasheet do microcontrolador, conferi que o chip tem duas interfaces can..
+Eu não tinha certeza se este painel de instrumentos tinha uma interface CAN. 
+Para tirar essa dúvida a gente desmontou o painel e fizemos uma análise dos componentes na placa de circuito impresso. 
+Localizado o microcontrolador na placa de circuito impresso, pesquisou-se o datasheet seu e conferi que o chip tem duas interfaces can.
 
 [https://www.nxp.com/docs/en/data-sheet/MC9S12XHZ512.pdf](https://www.nxp.com/docs/en/data-sheet/MC9S12XHZ512.pdf)
 
-Continuando com a engenharia reversa... pela lógica o microcontrolador deve estar ligado a um transciever,  e este chip deve ser um CI mais robusto pelo fato de estar diretamente ligado ao barramento CAN .. e deve estar posicionado entre o microcontrolador e o conector..
+Continuando com a engenharia reversa.
+Pela lógica o microcontrolador deve estar ligado a um transciever,  e este chip deve ser um CI mais robusto pelo fato de estar diretamente ligado ao barramento CAN.
+Também, pela lógica, este chip deve estar posicionado entre o microcontrolador e o conector.
 
 
 ![](fotos/placa_painel_up.jpg)
 
-Achei o chip...    
+Achei o chip !
+
 [https://www.infineon.com/cms/en/product/transceivers/automotive-transceiver/automotive-can-transceivers/tle6251ds/](https://www.infineon.com/cms/en/product/transceivers/automotive-transceiver/automotive-can-transceivers/tle6251ds/)
 
 Com o multimetro deu para descobrir a ligação dos pinos do transciever com o conector.
 
-pino 6 canl  está ligado a pino 29 do conector...
-pino 7 canh está no pino 28
 
-| pino | função   | cor     |   
-|:----:|:--------:|:-------:| 
-| 28   | CAN_H    | cinza   | 
-| 29   | CAN_L    | branco  |
+| pino | função   |    
+|:----:|:--------:| 
+| 28   | CAN_H    | 
+| 29   | CAN_L    | 
 | 20   | GND      |
 | 32   | +12v     |
 | 31   | +12v     |
 
-Com isso resolvido, podemos ver se a gente acha um conector que se encaixa nessas configuração..   Deve ter alguma documentação sobre reparação de paineis, imobilização do motor (immo) chave de segurança que trata sobre este conector...  Também deve ter alguma padronização de cores (conector azul, verde)...
 
-A rigor, podemos rodar um teste, alimentando o painel e medir o osciloscopio o sinal que o microcontrolador manda no barramento CAN...  Pela lógica o painel deve mandar uma informação no barramento avisando que ele está vivo e esperando dados...
-
-Assim podemos medir o baudrate e tentar identificar o ID do painel..
+Com essa informação podemos rodar um teste, alimentando o painel e medir com o osciloscopio o sinal que o microcontrolador manda no barramento CAN.
+Pela lógica o painel deve mandar uma informação no barramento avisando que ele está vivo e esperando dados e dessa forma podemos analisar o sinal e tentar medir o baudrate e visualizar o formato dos pacotes de dados que trafegam no barramento.
 
 ![](fotos/sinal_can_sem_terminador.jpg)
 
-veja o mesmo sinal com resistor..
+A tela a cima mostra o sinal medido diretamente na saída dos pinos 28 e 29 (CAN\_H e CAN\_L). Convem mencionar que não colocamos nenhum resistor de terminação no barramento. 
 
-da para ver que ao inicializar o painel manda uma palavra comprido de 300ms e depois ele manda a cada 0,1s em bloco de informação..
-
-este bloco tem o seguinte formato..
+Com a colocação de um resistor de terminação (pode ser de 120 - 470 Ohms) o sinal ficou mais nítido e dá para ver claramente que quando o painel é ligada à fonte a primeira coisa que aparece no barramento é uma palavra com um comprimento de 300ms. Depois de esperar 100ms o painel manda um bloco de informação de 130ms e repete isso ciclo.
 
 ![](fotos/sinal_can_terminador.jpg)
 
-dá para ver que o menor elemento tem 2us...  ou seja a taxa de transmissao é 500khz..
-
-os mais corajosos podem a partir deste sinal decodificar o dado...  ou outra solução é liga-lo com um computador com interface CAN e depurar o codigo..
-
-uma vez ligado, o painel manda um bloco de 150ms e depois para 100ms...
+A próxima tela mostra o detalhe deste bloco de 130ms.
 
 ![](fotos/sinal_bloco_1.jpg)
 
-este bloco de 150ms é divido em vários blocos com 200uS
+Este bloco de 130ms é divido em vários blocos com 200uS
 
 ![](fotos/sinal_bloco_2.jpg)
 
-e o detalhe da palavra mandado pelo CAN é o seguinte ..  a partir dessa figura dá para reconstituir o dado que é mandado pela CAN   500bps.
+Este bloco deve ser a pacote CAN e deve ser possível identificar o baudrate a partir da sua análise.
 
 ![](fotos/sinal_bloco_3.jpg)
+
+No detal dá para ver que o menor elemento tem deste bloco tem 2us. Ou seja, a taxa de transmissao é 500khz.
+
+Os mais corajosos podem a partir deste sinal tentar  decodificar o dado no barramento CAN.
+Outra solução é liga-lo o painel a um microcontrolador ou microcomputador com interface CAN e depurar o codigo.
 
 
 # 2. Dump do CAN pela porta serial
