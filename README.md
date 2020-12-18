@@ -37,14 +37,18 @@ Achei o chip !
 Com o multimetro deu para descobrir a ligação dos pinos do transciever com o conector.
 
 
-| pino | função   |    
-|:----:|:--------:| 
-| 28   | CAN_H    | 
-| 29   | CAN_L    | 
-| 20   | GND      |
-| 32   | +12v     |
-| 31   | +12v     |
+| pino | função |    
+|:----:|:------:| 
+| 28   | CAN_H  | 
+| 29   | CAN_L  | 
+| 20   | GND    |
+| 32   | +12v   |
+| 31   | +12v   |
+| 16   | GND    |
+| 25   | Handbrake control |
+| 27   | Oil pressure switch |
 
+Essa pinagem coincide com a de um [video no youtube ](https://www.youtube.com/watch?v=4SgW64d_fbE&feature=youtu.be) 
 
 Com essa informação podemos rodar um teste, alimentando o painel e medir com o osciloscopio o sinal que o microcontrolador manda no barramento CAN.
 Pela lógica o painel deve mandar uma informação no barramento avisando que ele está vivo e esperando dados e dessa forma podemos analisar o sinal e tentar medir o baudrate e visualizar o formato dos pacotes de dados que trafegam no barramento.
@@ -367,6 +371,18 @@ Este programa gera o seguinte dump na porta serial no momento que o painel é li
 02:41:41.857 -> ID: 322, Data: 0
 02:41:41.924 -> ID: 322, Data: 0```
 
+O painel de instrumentação manda pacotes CAN com os seguintes identificações ID
+
+
+| ID  | função   |    
+|:---:|:--------:| 
+|  64 |
+| 248 |
+| 321 |
+| 322 |  
+| 488 | 
+
+
 # 3. CAN-UTILS do linux-can
 
 Uma outra maneira de visualizar e analisar os dados é mapeando a porta serial como uma dispositivo de rede num computador rodando linux e usar as ferramantas do [CAN-UTILS](https://github.com/linux-can/can-utils).
@@ -615,5 +631,47 @@ O resto do procedimento é o mesmo que foi apresentado no CAN-UTILS.
 Há uma vasta documentação técnica sobre o uso do SocketCan em sistemas operacionais Linux acessando a porta CAN a partir de programas desenvolvido em C/C++ ou Python.
 
 
+# 4. Mandando dados no CAN bus
+
+O can-utils tem diversos programas para escrever dados para o barramento Can. 
+
+- cansend : manda um único pacote ou frame
+- cangen : gera trafegoe aleatória 
+- cansequence : send and check sequence of CAN frames with incrementing payload
+
+Além disso tem a opção de você mandar dados armazenados pelo candump de volta para o barramento com o canplayer (replay CAN logfiles)
+
+Se quesermos mandar um frama com 8 bytes com ID 0x280 podemos usar o seguinte comando:
+
+```
+$ cansend can0 280#49.0E.CC.0D.0E.00.1B.0E
+```
+
+Este comando, segundo [este video no youtube ](https://www.youtube.com/watch?v=4SgW64d_fbE&feature=youtu.be) deveria mudar o ponteiro de RPM do painel de instrumentos. 
+
+O valor do RPM é dado pelos terceiro e quarta byte neste frame, enquanto os demais bytes tem informações complementares do RPM ou do funcionamento do motor.
+
+Há alguns detailhes a considerar. Primeiro, não basta mandar somente um frame, pois pela lógica do funcionamento do sistema, o dados de RPM deve ser mandado o tempo inteiro em intervalos regulares para o painel. 
+
+Um maneira de fazer isso é por meio de um script bash que manda a cada 10ms o mesme frame durante pelo menos 2 segundos.
+
+```
+$ for i in {1..200}; do cansend can0 280#48.93.10.00.00.41.77.06 ; sleep 0.01 ;  done ;
+```
+
+O painel ainda não deu sinal de vida.
+Vamos ter que confirir os dados do frame.
+Uma opção pode ser pegar um sistema original funcionando e monitorar os ID no barramento e o funcionamento do painel.
+
+Há diversos artigos na internet que tratam disso. 
+
+*Happy hacking !!!*
 
 
+[http://ev-a2.blogspot.com/2013/06/can-bus-analysis-started.html](http://ev-a2.blogspot.com/2013/06/can-bus-analysis-started.html)
+
+[Hacking the CAN Bus:
+Basic Manipulation of a Modern Automobile Through CAN Bus Reverse Engineering](https://www.giac.org/paper/gcia/9927/hacking-bus-basic-manipulation-modern-automobile-bus-reverse-engineering/133228)
+
+
+[https://medium.com/@yogeshojha/car-hacking-101-practical-guide-to-exploiting-can-bus-using-instrument-cluster-simulator-part-ee998570758](https://medium.com/@yogeshojha/car-hacking-101-practical-guide-to-exploiting-can-bus-using-instrument-cluster-simulator-part-ee998570758)
