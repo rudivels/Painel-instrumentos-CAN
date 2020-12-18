@@ -527,12 +527,11 @@ $ candump -tAd can0
 Agora pode-se partir para analisar o protocolo.
 
 Além do uso arduino com o módulo controlador CAN pode se usar um microcomputador mais potente para fazer a captura dos dados. 
-Vamos apresentar a opção com o Raspberry e Beagle Bone.
-
-## 3.1. Raspberry
+Vamos apresentar a opção com o Beagle Bone.
 
 
-## 3.2. Beagle board
+
+## 3.1. Beagle board
 O computador *Beagle Bone* tem uma arquitetura apropriado para sistemas embarcadas baseado em num ARM, ter além do processador principal, dois *Programmable Real-time Unit (PRU)* que podem ser usados para alguma necessidade de processamento dedicado e dois controladores CAN já incorporados na sua placa.
 
 Dessa forma pode se só usar um transciever SN65HVD230 para compatibilizar os níveis de tensão no barramento can com as portas do microcomputador. 
